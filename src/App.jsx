@@ -1,38 +1,94 @@
 import { useState, useRef, useEffect } from 'react';
 
 export default function DraggableContainers() {
-  // Update container names mapping to include "SVG content"
+  // Container names mapping including Event Log
   const containerNames = {
     1: "",
-    2: "Input Text",
+    2: "Type here",
     3: "Peterborough",
     4: "Huntingdon",
     5: "Bedford",
     6: "Luton",
-    7: "Box",
-    8: "Edit"
+    7: "Edit",
+    8: "Outstanding",
+    9: "Event Log",
+    10: "Export Events" // New container for CSV export
   };
 
   // Default initial state
   const defaultContainers = [
     { id: 1, items: [] }, // SVG content
-    { id: 2, items: [] }, // Input Text
-    { id: 3, items: [{ id: 1, text: "Text box 1" }, { id: 2, text: "Text box 2" }] },
-    { id: 4, items: [{ id: 3, text: "Text box 3" }] },
-    { id: 5, items: [{ id: 4, text: "Text box 4" }, { id: 5, text: "Text box 5" }] },
+    { id: 2, items: [] }, // Ideas/Input Text
+    { id: 3, items: [{ id: 1, text: "Text box 1", createdAt: new Date().toISOString() }] },
+    { id: 4, items: [{ id: 3, text: "Text box 3", createdAt: new Date().toISOString() }] },
+    { id: 5, items: [{ id: 4, text: "Text box 4", createdAt: new Date().toISOString() }, { id: 5, text: "Text box 5", createdAt: new Date().toISOString() }] },
     { id: 6, items: [] },
-    { id: 7, items: [{ id: 6, text: "Text box 6" }] },
-    { id: 8, items: [] } // Edit container
+    { id: 7, items: [{ id: 6, text: "Text box 6", createdAt: new Date().toISOString() }] },
+    { id: 8, items: [] }, // Edit container
+    { id: 9, items: [] },  // Event Log container
+    { id: 10, items: [] }  // Export Events container
   ];
+  
   
   // Default next ID
   const defaultNextId = 7;
 
+  // Default events array (for event log)
+  const defaultEvents = [
+    { 
+      id: 1, 
+      text: "ID: 1 \"Text box 1\" created", 
+      createdAt: new Date().toISOString(),
+      type: 'create'
+    },
+    { 
+      id: 2, 
+      text: "ID: 3 \"Text box 3\" created", 
+      createdAt: new Date().toISOString(),
+      type: 'create'
+    },
+    { 
+      id: 3, 
+      text: "ID: 4 \"Text box 4\" created", 
+      createdAt: new Date().toISOString(),
+      type: 'create'
+    },
+    { 
+      id: 4, 
+      text: "ID: 5 \"Text box 5\" created", 
+      createdAt: new Date().toISOString(),
+      type: 'create'
+    },
+    { 
+      id: 5, 
+      text: "ID: 6 \"Text box 6\" created", 
+      createdAt: new Date().toISOString(),
+      type: 'create'
+    }
+  ];
+
   // Initialize state with saved data or defaults
   const [containers, setContainers] = useState(() => {
-    // Try to get saved containers from localStorage
-    const savedContainers = localStorage.getItem('containers');
-    return savedContainers ? JSON.parse(savedContainers) : defaultContainers;
+    try {
+      // Try to get saved containers from localStorage
+      const savedContainers = localStorage.getItem('containers');
+      return savedContainers ? JSON.parse(savedContainers) : defaultContainers;
+    } catch (e) {
+      console.error("Error loading containers from localStorage:", e);
+      return defaultContainers;
+    }
+  });
+
+  // State for the event log
+  const [eventLog, setEventLog] = useState(() => {
+    try {
+      // Try to get saved events from localStorage
+      const savedEventLog = localStorage.getItem('eventLog');
+      return savedEventLog ? JSON.parse(savedEventLog) : defaultEvents;
+    } catch (e) {
+      console.error("Error loading eventLog from localStorage:", e);
+      return defaultEvents;
+    }
   });
 
   // State to track the item being dragged and its source container
@@ -41,15 +97,31 @@ export default function DraggableContainers() {
   
   // Counter for generating new text box IDs - load from localStorage if available
   const [nextId, setNextId] = useState(() => {
-    const savedNextId = localStorage.getItem('nextId');
-    return savedNextId ? parseInt(savedNextId) : defaultNextId;
+    try {
+      const savedNextId = localStorage.getItem('nextId');
+      return savedNextId ? parseInt(savedNextId) : defaultNextId;
+    } catch (e) {
+      console.error("Error loading nextId from localStorage:", e);
+      return defaultNextId;
+    }
   });
-  
+
   // State for the new text input
   const [newTextInput, setNewTextInput] = useState("");
   
   // Ref for the new text input
   const newTextInputRef = useRef(null);
+  
+  // Counter for generating event IDs
+  const [nextEventId, setNextEventId] = useState(() => {
+    try {
+      const savedNextEventId = localStorage.getItem('nextEventId');
+      return savedNextEventId ? parseInt(savedNextEventId) : defaultEvents.length + 1;
+    } catch (e) {
+      console.error("Error loading nextEventId from localStorage:", e);
+      return defaultEvents.length + 1;
+    }
+  });
   
   // State to store window dimensions
   const [windowSize, setWindowSize] = useState({
@@ -73,16 +145,118 @@ export default function DraggableContainers() {
       window.removeEventListener('resize', handleResize);
     };
   }, []);
+
+  // Initialize the Event Log container if it doesn't exist and update containers
+  useEffect(() => {
+    // Update the event log container (id 9) with current events
+    setContainers(prevContainers => 
+      prevContainers.map(container => 
+        container.id === 9 
+          ? { ...container, items: eventLog } 
+          : container
+      )
+    );
+  }, [eventLog]);
   
   // Save containers to localStorage whenever they change
   useEffect(() => {
-    localStorage.setItem('containers', JSON.stringify(containers));
+    try {
+      localStorage.setItem('containers', JSON.stringify(containers));
+    } catch (e) {
+      console.error("Error saving containers to localStorage:", e);
+    }
   }, [containers]);
+  
+  // Save event log to localStorage whenever it changes
+  useEffect(() => {
+    try {
+      localStorage.setItem('eventLog', JSON.stringify(eventLog));
+    } catch (e) {
+      console.error("Error saving eventLog to localStorage:", e);
+    }
+  }, [eventLog]);
   
   // Save nextId to localStorage whenever it changes
   useEffect(() => {
-    localStorage.setItem('nextId', nextId.toString());
+    try {
+      localStorage.setItem('nextId', nextId.toString());
+    } catch (e) {
+      console.error("Error saving nextId to localStorage:", e);
+    }
   }, [nextId]);
+
+  // Save nextEventId to localStorage whenever it changes
+  useEffect(() => {
+    try {
+      localStorage.setItem('nextEventId', nextEventId.toString());
+    } catch (e) {
+      console.error("Error saving nextEventId to localStorage:", e);
+    }
+  }, [nextEventId]);
+
+  // Helper function to format date for display
+  const formatDate = (dateString) => {
+    try {
+      const date = new Date(dateString);
+      
+      // Format date as DD/MM/YYYY
+      const day = date.getDate().toString().padStart(2, '0');
+      const month = (date.getMonth() + 1).toString().padStart(2, '0');
+      const year = date.getFullYear();
+      
+      // Format time as HH:MM
+      const hours = date.getHours().toString().padStart(2, '0');
+      const minutes = date.getMinutes().toString().padStart(2, '0');
+      
+      return {
+        date: `${day}/${month}/${year}`,
+        time: `${hours}:${minutes}`
+      };
+    } catch (e) {
+      console.error("Error formatting date:", e);
+      return { date: "unknown", time: "unknown" };
+    }
+  };
+
+  // Add a new event to the log
+  const addEvent = (type, itemId, itemText, source = null, target = null) => {
+    const timestamp = new Date().toISOString();
+    let eventText = "";
+    
+    // Create appropriate event text based on type
+    switch (type) {
+      case 'create':
+        eventText = `ID: ${itemId} "${itemText}" created on: ${formatDate(timestamp).date} at: ${formatDate(timestamp).time}`;
+        break;
+      case 'move':
+        eventText = `ID: ${itemId} "${itemText}" moved from "${containerNames[source]}" → "${containerNames[target]}" on: ${formatDate(timestamp).date} at: ${formatDate(timestamp).time}`;
+        break;
+      case 'edit':
+        eventText = `ID: ${itemId} text changed to "${itemText}" on: ${formatDate(timestamp).date} at: ${formatDate(timestamp).time}`;
+        break;
+      case 'delete':
+        eventText = `ID: ${itemId} "${itemText}" deleted on: ${formatDate(timestamp).date} at: ${formatDate(timestamp).time}`;
+        break;
+      default:
+        eventText = `ID: ${itemId} unknown event on: ${formatDate(timestamp).date} at: ${formatDate(timestamp).time}`;
+    }
+    
+    // Create new event item
+    const newEvent = {
+      id: nextEventId,
+      text: eventText,
+      createdAt: timestamp,
+      type: type
+    };
+    
+    // Add event to the Event Log state
+    setEventLog(prevEvents => [newEvent, ...prevEvents]);
+    
+    // Increment event ID counter
+    setNextEventId(prev => prev + 1);
+    
+    return timestamp;
+  };
 
   // SVG dimensions with scaling factor of 0.5 (50% of original size)
   const svgOriginalWidth = 459;
@@ -107,12 +281,24 @@ export default function DraggableContainers() {
   const handleDrop = (e, targetContainerId) => {
     e.preventDefault();
     
-    // Prevent dropping into SVG container (id 1)
-    if (targetContainerId === 1) {
+    // Prevent dropping into SVG container (id 1) or Event Log container (id 9)
+    if (targetContainerId === 1 || targetContainerId === 9) {
       return;
     }
     
     if (dragItem && dragSourceContainer !== null) {
+      // Don't log if dropped back into same container
+      if (dragSourceContainer !== targetContainerId) {
+        // Log the move event
+        addEvent(
+          'move',
+          dragItem.id,
+          dragItem.text,
+          dragSourceContainer,
+          targetContainerId
+        );
+      }
+      
       // Create new containers array
       const newContainers = containers.map(container => {
         // Remove from source container
@@ -143,10 +329,20 @@ export default function DraggableContainers() {
   // Add new text box
   const addNewTextBox = () => {
     if (newTextInput.trim()) {
+      const timestamp = new Date().toISOString();
+      
       const newItem = {
         id: nextId,
-        text: newTextInput
+        text: newTextInput,
+        createdAt: timestamp
       };
+      
+      // Log the creation event
+      addEvent(
+        'create',
+        nextId,
+        newTextInput
+      );
       
       // Add to Input Text container
       const newContainers = [...containers];
@@ -184,6 +380,19 @@ export default function DraggableContainers() {
 
   // Edit text box content
   const editTextBox = (containerId, itemId, newText) => {
+    // Get the current text
+    const currentItem = containers.find(c => c.id === containerId)?.items.find(i => i.id === itemId);
+    const currentText = currentItem?.text || '';
+    
+    // Only log if the text actually changed
+    if (currentText !== newText) {
+      addEvent(
+        'edit',
+        itemId,
+        newText
+      );
+    }
+    
     const newContainers = containers.map(container => {
       if (container.id === containerId) {
         return {
@@ -199,8 +408,20 @@ export default function DraggableContainers() {
     setContainers(newContainers);
   };
 
+
+
   // Delete text box
   const deleteTextBox = (containerId, itemId) => {
+    // Find the text of the item being deleted
+    const itemText = containers.find(c => c.id === containerId)?.items.find(i => i.id === itemId)?.text || '';
+    
+    // Log the deletion event
+    addEvent(
+      'delete',
+      itemId,
+      itemText
+    );
+    
     const newContainers = containers.map(container => {
       if (container.id === containerId) {
         return {
@@ -214,13 +435,56 @@ export default function DraggableContainers() {
     setContainers(newContainers);
   };
 
+  const clearEventLog = () => {
+    if (window.confirm("Are you sure you want to clear all events from the log?")) {
+      setEventLog([]);
+      // Also clear the event log container items
+      setContainers(prevContainers => 
+        prevContainers.map(container => 
+          container.id === 9 
+            ? { ...container, items: [] } 
+            : container
+        )
+      );
+    }
+  };
+
+// Add this function after the deleteTextBox function
+const copyEventsToCSV = () => {
+  // Convert events to CSV format
+  const headers = ["ID", "Event", "Created At", "Type"];
+  const csvRows = [headers.join(",")];
+  
+  eventLog.forEach(event => {
+    const row = [
+      event.id,
+      `"${event.text.replace(/"/g, '""')}"`, // Escape quotes in CSV
+      event.createdAt,
+      event.type
+    ];
+    csvRows.push(row.join(","));
+  });
+  
+  const csvString = csvRows.join("\n");
+  
+  // Copy to clipboard
+  navigator.clipboard.writeText(csvString)
+    .then(() => {
+      alert("Event log copied to clipboard as CSV");
+    })
+    .catch(err => {
+      console.error("Failed to copy to clipboard:", err);
+      alert("Failed to copy to clipboard");
+    });
+};
+
   // Get container position style - positions relative to viewport
   const getContainerPositionStyle = (containerId) => {
     const containerWidth = 250; // Container width in pixels
     const padding = 20; // Padding from viewport edges
     
     switch(containerId) {
-      case 1: // SVG content - center
+      case 1: // SVG Map - center
         return { 
           position: 'fixed', 
           top: '50%', 
@@ -230,7 +494,7 @@ export default function DraggableContainers() {
           height: `${svgHeight}px`,
           zIndex: 0
         };
-      case 2: // Input Text - top center
+      case 2: // Ideas - top center
         return { 
           position: 'fixed', 
           top: `${padding}px`, 
@@ -238,24 +502,24 @@ export default function DraggableContainers() {
           transform: 'translateX(-50%)',
           width: `${containerWidth}px` 
         };
-      case 3: // Peterborough - top left
-        return { 
-          position: 'fixed', 
-          top: `${padding}px`, 
-          left: `${padding}px`, 
-          width: `${containerWidth}px` 
-        };
-      case 4: // Huntingdon - top right
+      case 3: // Peterborough - top right
         return { 
           position: 'fixed', 
           top: `${padding}px`, 
           right: `${padding}px`, 
           width: `${containerWidth}px` 
         };
-      case 5: // Bedford - middle left
+      case 4: // Huntingdon - middle right
         return { 
           position: 'fixed', 
           top: `${windowSize.height / 2 - 150}px`, 
+          right: `${padding}px`, 
+          width: `${containerWidth}px` 
+        };
+      case 5: // Bedford - top left
+        return { 
+          position: 'fixed', 
+          top: `${padding}px`, 
           left: `${padding}px`, 
           width: `${containerWidth}px` 
         };
@@ -266,7 +530,7 @@ export default function DraggableContainers() {
           left: `${padding}px`, 
           width: `${containerWidth}px` 
         };
-      case 7: // Box - bottom center
+      case 7: // Edit - bottom center
         return { 
           position: 'fixed', 
           bottom: `${padding}px`, 
@@ -274,17 +538,34 @@ export default function DraggableContainers() {
           transform: 'translateX(-50%)',
           width: `${containerWidth}px` 
         };
-      case 8: // Edit - bottom right
+      case 8: // Outstanding - bottom right
         return { 
           position: 'fixed', 
           bottom: `${padding}px`, 
           right: `${padding}px`, 
           width: `${containerWidth}px` 
         };
-      default:
-        return {};
-    }
+
+// Update the style for Event Log container to accommodate the button
+case 9: // Event Log - middle left
+  return { 
+    position: 'fixed', 
+    top: `${windowSize.height / 2 - 150}px`, 
+    left: `${padding}px`, 
+    width: `${containerWidth + 50}px`, // Slightly wider for event logs
+    maxHeight: '200px', // Increase height to accommodate button
+    overflowY: 'auto'
   };
+    }}
+        // Define a consistent delete button style
+        const deleteButtonStyle = {
+          marginLeft: '4px',
+          fontSize: '12px',
+          lineHeight: '1',
+          padding: '2px 4px',
+          color: '#ef4444',
+          cursor: 'pointer'
+        };
 
   return (
     <>
@@ -292,14 +573,15 @@ export default function DraggableContainers() {
       {containers.map((container) => (
         <div
           key={container.id}
-          style={getContainerPositionStyle(container.id)}
           className={`bg-white p-4 rounded shadow-md transition-all duration-300 flex flex-col ${container.id === 1 ? 'overflow-hidden' : 'min-h-32'}`}
+          style={{...getContainerPositionStyle(container.id), zIndex: container.id === 1 ? 0 : 10}}
           onDragOver={handleDragOver}
           onDrop={(e) => handleDrop(e, container.id)}
         >
-          <h2 className="text-lg font-semibold mb-3 text-left border-b pb-2 uppercase">
+          <h2 className="text-lg font-semibold mb-2 text-center border-b pb-2 uppercase">
             {containerNames[container.id]}
           </h2>
+
           
           {container.id === 1 ? (
             // SVG content
@@ -312,7 +594,6 @@ export default function DraggableContainers() {
                 fill="none" 
                 xmlns="http://www.w3.org/2000/svg"
                 style={{
-                  border: '1px dashed #ccc',
                   display: 'block'
                 }}
               >
@@ -357,6 +638,8 @@ export default function DraggableContainers() {
                 <text x="253" y="817" fontFamily="Arial" fontSize="14" fill="black">130 mins</text>
                 <text x="303" y="767" fontFamily="Arial" fontSize="14" fill="black">105 mins</text>
               </svg>
+
+              
               
               {/* Center point indicator */}
               <div 
@@ -372,9 +655,9 @@ export default function DraggableContainers() {
               ></div>
             </div>
           ) : container.id === 2 ? (
-            // Input Text container with input field and add button
+            // Ideas container with input field and add button
             <div className="flex-grow">
-              <div className="mb-4">
+              <div className="mb-2">
                 <div className="flex gap-2">
                   <input
                     ref={newTextInputRef}
@@ -385,19 +668,20 @@ export default function DraggableContainers() {
                     placeholder="Type new text box content"
                     className="flex-grow p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-300"
                   />
-                  <button
+                  <button 
                     onClick={addNewTextBox}
-                    className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition"
+                    className="ml-1 px-3 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 text-sm"
                   >
                     Add
                   </button>
                 </div>
               </div>
               
-              {/* Draggable items in Input Text container */}
+              {/* Draggable items in Ideas container */}
               <div className="mt-4">
                 {container.items.length === 0 ? (
-                  <div className="text-gray-400 text-left p-4 border-2 border-dashed border-gray-200 rounded">
+                  <div className="text-gray-400 text-center p-4 border-2 border-dashed border-gray-200 rounded">
+                    No items yet
                   </div>
                 ) : (
                   container.items.map((item) => (
@@ -405,17 +689,18 @@ export default function DraggableContainers() {
                       key={item.id}
                       draggable
                       onDragStart={(e) => handleDragStart(e, container.id, item)}
-                      className="bg-gray-50 p-3 mb-2 rounded border border-gray-200 cursor-move hover:shadow-md group relative"
+                      className="bg-gray-50 p-2 mb-2 rounded border border-gray-200 cursor-move hover:shadow-md group relative"
                     >
                       <div className="flex justify-between items-center">
                         <input
                           value={item.text}
                           onChange={(e) => editTextBox(container.id, item.id, e.target.value)}
-                          className="bg-transparent outline-none w-full pr-8 text-left"
+                          className="bg-transparent outline-none flex-grow text-left py-1 px-2"
                         />
                         <button
                           onClick={() => deleteTextBox(container.id, item.id)}
-                          className="absolute right-2 top-3 opacity-0 group-hover:opacity-100 text-red-500 hover:text-red-700"
+                          className="opacity-0 group-hover:opacity-100 text-red-500 hover:text-red-700 text-sm"
+                          style={deleteButtonStyle}
                         >
                           ✕
                         </button>
@@ -425,11 +710,58 @@ export default function DraggableContainers() {
                 )}
               </div>
             </div>
-          ) : (
+// Replace with:
+) : container.id === 9 ? (
+  // Event Log container with buttons at the top
+  <>
+    <div className="flex justify-between items-center mb-2 border-b pb-2">
+      <h2 className="text-lg font-semibold uppercase">
+      </h2>
+      <div className="flex gap-2">
+        <button 
+          onClick={copyEventsToCSV}
+          className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 text-sm"
+        >
+          Copy to CSV
+        </button>
+        <button 
+          onClick={clearEventLog}
+          className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 text-sm"
+        >
+          Clear
+        </button>
+      </div>
+    </div>
+    
+    <div className="flex-grow overflow-y-auto" style={{ maxHeight: '280px' }}>
+      {eventLog.length === 0 ? (
+        <div className="text-gray-400 text-center p-4">
+          No events recorded yet
+        </div>
+      ) : (
+        eventLog.map((item) => (
+          <div
+            key={item.id}
+            className={`p-2 mb-2 rounded border ${
+              item.type === 'create' ? 'border-green-200 bg-green-50' : 
+              item.type === 'move' ? 'border-blue-200 bg-blue-50' : 
+              item.type === 'edit' ? 'border-yellow-200 bg-yellow-50' : 
+              'border-red-200 bg-red-50'
+            }`}
+          >
+            <div className="px-2 py-1 text-xs">
+              {item.text}
+            </div>
+          </div>
+        ))
+      )}
+    </div>
+  </>
+) : (
             // Regular container items
-            <div className="flex-grow">
+            <div className="flex-grow flex flex-col" style={{ gap: '8px' }}>
               {container.items.length === 0 ? (
-                <div className="text-gray-400 text-left p-4 border-2 border-dashed border-gray-200 rounded">
+                <div className="text-gray-400 text-center p-4 border-2 border-dashed border-gray-200 rounded h-full flex items-center justify-center">
                   Drop items here
                 </div>
               ) : (
@@ -438,17 +770,18 @@ export default function DraggableContainers() {
                     key={item.id}
                     draggable
                     onDragStart={(e) => handleDragStart(e, container.id, item)}
-                    className="bg-gray-50 p-3 mb-2 rounded border border-gray-200 cursor-move hover:shadow-md group relative"
+                    className="bg-gray-50 p-2 rounded border border-gray-200 cursor-move hover:shadow-md group relative"
                   >
                     <div className="flex justify-between items-center">
                       <input
                         value={item.text}
                         onChange={(e) => editTextBox(container.id, item.id, e.target.value)}
-                        className="bg-transparent outline-none w-full pr-8 text-left"
+                        className="bg-transparent outline-none flex-grow text-left py-1 px-2"
                       />
                       <button
                         onClick={() => deleteTextBox(container.id, item.id)}
-                        className="absolute right-2 top-3 opacity-0 group-hover:opacity-100 text-red-500 hover:text-red-700"
+                        className="opacity-0 group-hover:opacity-100 text-red-500 hover:text-red-700 text-sm"
+                        style={deleteButtonStyle}
                       >
                         ✕
                       </button>
@@ -460,6 +793,7 @@ export default function DraggableContainers() {
           )}
         </div>
       ))}
+
       
       {/* Viewport center indicator */}
       <div 
