@@ -4,7 +4,7 @@ export default function DraggableContainers() {
   // Container names mapping including Event Log
   const containerNames = {
     1: "",
-    2: "Type here",
+    2: "Type pantsy",
     3: "Peterborough",
     4: "Huntingdon",
     5: "Bedford",
@@ -408,8 +408,6 @@ export default function DraggableContainers() {
     setContainers(newContainers);
   };
 
-
-
   // Delete text box
   const deleteTextBox = (containerId, itemId) => {
     // Find the text of the item being deleted
@@ -513,7 +511,7 @@ const copyEventsToCSV = () => {
         return { 
           position: 'fixed', 
           top: `${windowSize.height / 2 - 150}px`, 
-          right: `${padding}px`, 
+          right: `${windowSize.width / 2 - 400}px`, // Changed from padding to be more to the left
           width: `${containerWidth}px` 
         };
       case 5: // Bedford - top left
@@ -551,9 +549,9 @@ case 9: // Event Log - middle left
   return { 
     position: 'fixed', 
     top: `${windowSize.height / 2 - 150}px`, 
-    left: `${padding}px`, 
+    left: `${windowSize.width / 2 - 400}px`, // Changed from padding to be more to the right
     width: `${containerWidth + 50}px`, // Slightly wider for event logs
-    maxHeight: '200px', // Increase height to accommodate button
+    maxHeight: '100px', // Increase height to accommodate button
     overflowY: 'auto'
   };
     }}
@@ -567,13 +565,79 @@ case 9: // Event Log - middle left
           cursor: 'pointer'
         };
 
+  // Add this function before the return statement
+  const getTextColor = (text) => {
+    const lowerText = text.toLowerCase();
+    
+    // Color words with bold
+    if (lowerText.includes('red')) return { color: '#dc2626', fontWeight: 'bold' };
+    if (lowerText.includes('yellow')) return { color: '#eab308', fontWeight: 'bold' };
+    if (lowerText.includes('blue')) return { color: '#2563eb', fontWeight: 'bold' };
+    if (lowerText.includes('orange')) return { color: '#ea580c', fontWeight: 'bold' };
+    if (lowerText.includes('green')) return { color: '#16a34a', fontWeight: 'bold' };
+    
+    // New formatting rules
+    if (lowerText.includes('miv')) return { color: '#00008B' }; // Dark Blue
+    if (lowerText.includes('gopro')) return { color: '#00FF00', fontWeight: 'bold' }; // Pure Green
+    if (lowerText.includes('wireless rig')) return { color: '#00FF00', fontWeight: 'bold' }; // Pure Green
+    if (lowerText.includes('corsa')) return { color: '#404040', textDecoration: 'underline', fontWeight: 'bold' }; // Dark Grey
+    if (lowerText.includes('toyota')) return { color: '#40E0D0', textDecoration: 'underline', fontWeight: 'bold' }; // Turquoise
+    if (lowerText.includes('rig van')) return { color: '#8B4513', textDecoration: 'underline', fontWeight: 'bold' }; // Brown
+    
+    return { color: 'inherit', fontWeight: 'normal', textDecoration: 'none' };
+  };
+
+  const renderTwoColumnContainer = (container, items) => {
+    const isBedford = container.id === 5;
+    const isPeterborough = container.id === 3;
+    
+    if (!isBedford && !isPeterborough) return null;
+    
+    return (
+      <div className="flex flex-col gap-2">
+        {items.length === 0 ? (
+          <div className="text-gray-400 text-center p-4 border border-dashed border-gray-300 rounded h-full flex items-center justify-center">
+            Drop items here
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-2">
+            {items.map((item) => (
+              <div
+                key={item.id}
+                draggable
+                onDragStart={(e) => handleDragStart(e, container.id, item)}
+                className="bg-gray-50 p-2 rounded border border-gray-200 cursor-move hover:shadow-md group relative"
+              >
+                <div className="flex justify-between items-center">
+                  <input
+                    value={item.text}
+                    onChange={(e) => editTextBox(container.id, item.id, e.target.value)}
+                    className="bg-transparent outline-none flex-grow text-left py-1 px-2 text-lg w-[200px] h-[40px]"
+                    style={getTextColor(item.text)}
+                  />
+                  <button
+                    onClick={() => deleteTextBox(container.id, item.id)}
+                    className="opacity-0 group-hover:opacity-100 text-red-500 hover:text-red-700 text-sm"
+                    style={deleteButtonStyle}
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
     <>
       {/* Positioned Containers */}
       {containers.map((container) => (
         <div
           key={container.id}
-          className={`bg-white p-4 rounded shadow-md transition-all duration-300 flex flex-col ${container.id === 1 ? 'overflow-hidden' : 'min-h-32'}`}
+          className={`bg-white p-4 rounded shadow-md transition-all duration-300 flex flex-col border-2 border-gray-300 ${container.id === 1 ? 'overflow-hidden' : 'min-h-32'}`}
           style={{...getContainerPositionStyle(container.id), zIndex: container.id === 1 ? 0 : 10}}
           onDragOver={handleDragOver}
           onDrop={(e) => handleDrop(e, container.id)}
@@ -695,7 +759,8 @@ case 9: // Event Log - middle left
                         <input
                           value={item.text}
                           onChange={(e) => editTextBox(container.id, item.id, e.target.value)}
-                          className="bg-transparent outline-none flex-grow text-left py-1 px-2"
+                          className="bg-transparent outline-none flex-grow text-left py-1 px-2 text-lg w-[200px] h-[40px]"
+                          style={getTextColor(item.text)}
                         />
                         <button
                           onClick={() => deleteTextBox(container.id, item.id)}
@@ -710,57 +775,58 @@ case 9: // Event Log - middle left
                 )}
               </div>
             </div>
-// Replace with:
-) : container.id === 9 ? (
-  // Event Log container with buttons at the top
-  <>
-    <div className="flex justify-between items-center mb-2 border-b pb-2">
-      <h2 className="text-lg font-semibold uppercase">
-      </h2>
-      <div className="flex gap-2">
-        <button 
-          onClick={copyEventsToCSV}
-          className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 text-sm"
-        >
-          Copy to CSV
-        </button>
-        <button 
-          onClick={clearEventLog}
-          className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 text-sm"
-        >
-          Clear
-        </button>
-      </div>
-    </div>
-    
-    <div className="flex-grow overflow-y-auto" style={{ maxHeight: '280px' }}>
-      {eventLog.length === 0 ? (
-        <div className="text-gray-400 text-center p-4">
-          No events recorded yet
-        </div>
-      ) : (
-        eventLog.map((item) => (
-          <div
-            key={item.id}
-            className={`p-2 mb-2 rounded border ${
-              item.type === 'create' ? 'border-green-200 bg-green-50' : 
-              item.type === 'move' ? 'border-blue-200 bg-blue-50' : 
-              item.type === 'edit' ? 'border-yellow-200 bg-yellow-50' : 
-              'border-red-200 bg-red-50'
-            }`}
-          >
-            <div className="px-2 py-1 text-xs">
-              {item.text}
-            </div>
-          </div>
-        ))
-      )}
-    </div>
-  </>
-) : (
+          ) : container.id === 9 ? (
+            // Event Log container with buttons at the top
+            <>
+              <div className="flex justify-between items-center mb-2 border-b pb-2">
+                <h2 className="text-lg font-semibold uppercase">
+                </h2>
+                <div className="flex gap-2">
+                  <button 
+                    onClick={copyEventsToCSV}
+                    className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 text-sm"
+                  >
+                    Copy to CSV
+                  </button>
+                  <button 
+                    onClick={clearEventLog}
+                    className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 text-sm"
+                  >
+                    Clear
+                  </button>
+                </div>
+              </div>
+              
+              <div className="flex-grow overflow-y-auto" style={{ maxHeight: '280px' }}>
+                {eventLog.length === 0 ? (
+                  <div className="text-gray-400 text-center p-4">
+                    No events recorded yet
+                  </div>
+                ) : (
+                  eventLog.map((item) => (
+                    <div
+                      key={item.id}
+                      className={`p-2 mb-2 rounded border ${
+                        item.type === 'create' ? 'border-green-200 bg-green-50' : 
+                        item.type === 'move' ? 'border-blue-200 bg-blue-50' : 
+                        item.type === 'edit' ? 'border-yellow-200 bg-yellow-50' : 
+                        'border-red-200 bg-red-50'
+                      }`}
+                    >
+                      <div className="px-2 py-1 text-xs">
+                        {item.text}
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </>
+          ) : (
             // Regular container items
             <div className="flex-grow flex flex-col" style={{ gap: '8px' }}>
-              {container.items.length === 0 ? (
+              {container.id === 3 || container.id === 5 ? (
+                renderTwoColumnContainer(container, container.items)
+              ) : container.items.length === 0 ? (
                 <div className="text-gray-400 text-center p-4 border-2 border-dashed border-gray-200 rounded h-full flex items-center justify-center">
                   Drop items here
                 </div>
@@ -776,7 +842,8 @@ case 9: // Event Log - middle left
                       <input
                         value={item.text}
                         onChange={(e) => editTextBox(container.id, item.id, e.target.value)}
-                        className="bg-transparent outline-none flex-grow text-left py-1 px-2"
+                        className="bg-transparent outline-none flex-grow text-left py-1 px-2 text-lg w-[200px] h-[40px]"
+                        style={getTextColor(item.text)}
                       />
                       <button
                         onClick={() => deleteTextBox(container.id, item.id)}
